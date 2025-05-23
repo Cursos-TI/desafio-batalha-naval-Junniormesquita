@@ -35,9 +35,15 @@
     // 1 1 1 1 1
     // 0 0 1 0 0
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #define TAMANHO_TABULEIRO 10
 #define TAMANHO_NAVIO 3
 #define NAVIO 3
+#define HABILIDADE 5
+
+#define TAMANHO_HABILIDADE 5 // Matriz 5x5
 
 // Função para exibir o tabuleiro
 void exibirTabuleiro(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO]) {
@@ -50,104 +56,134 @@ void exibirTabuleiro(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO]) {
     for (int i = 0; i < TAMANHO_TABULEIRO; i++) {
         printf("%2d ", i);
         for (int j = 0; j < TAMANHO_TABULEIRO; j++) {
-            printf("%d ", tabuleiro[i][j]);
+            if (tabuleiro[i][j] == 0)
+                printf("~ "); // Água
+            else if (tabuleiro[i][j] == NAVIO)
+                printf("N "); // Navio
+            else if (tabuleiro[i][j] == HABILIDADE)
+                printf("* "); // Área de efeito
+            else
+                printf("? ");
         }
         printf("\n");
     }
 }
 
-// Função para verificar se uma posição está ocupada
-int estaOcupado(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO], int linha, int coluna) {
-    return tabuleiro[linha][coluna] != 0;
+// Cria a matriz de habilidade em forma de cone
+void criarCone(int matriz[TAMANHO_HABILIDADE][TAMANHO_HABILIDADE]) {
+    for (int i = 0; i < TAMANHO_HABILIDADE; i++) {
+        for (int j = 0; j < TAMANHO_HABILIDADE; j++) {
+            if (j >= (TAMANHO_HABILIDADE/2 - i) && j <= (TAMANHO_HABILIDADE/2 + i) && i <= TAMANHO_HABILIDADE/2)
+                matriz[i][j] = 1;
+            else
+                matriz[i][j] = 0;
+        }
+    }
+}
+
+// Cria a matriz de habilidade em forma de cruz
+void criarCruz(int matriz[TAMANHO_HABILIDADE][TAMANHO_HABILIDADE]) {
+    for (int i = 0; i < TAMANHO_HABILIDADE; i++) {
+        for (int j = 0; j < TAMANHO_HABILIDADE; j++) {
+            if (i == TAMANHO_HABILIDADE / 2 || j == TAMANHO_HABILIDADE / 2)
+                matriz[i][j] = 1;
+            else
+                matriz[i][j] = 0;
+        }
+    }
+}
+
+// Cria a matriz de habilidade em forma de octaedro (losango)
+void criarOctaedro(int matriz[TAMANHO_HABILIDADE][TAMANHO_HABILIDADE]) {
+    int centro = TAMANHO_HABILIDADE / 2;
+    for (int i = 0; i < TAMANHO_HABILIDADE; i++) {
+        for (int j = 0; j < TAMANHO_HABILIDADE; j++) {
+            if (abs(i - centro) + abs(j - centro) <= centro)
+                matriz[i][j] = 1;
+            else
+                matriz[i][j] = 0;
+        }
+    }
+}
+
+// Aplica a matriz da habilidade no tabuleiro
+void aplicarHabilidade(int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO],
+                        int habilidade[TAMANHO_HABILIDADE][TAMANHO_HABILIDADE],
+                        int origemLinha, int origemColuna) {
+    int centro = TAMANHO_HABILIDADE / 2;
+
+    for (int i = 0; i < TAMANHO_HABILIDADE; i++) {
+        for (int j = 0; j < TAMANHO_HABILIDADE; j++) {
+            if (habilidade[i][j] == 1) {
+                int linhaTab = origemLinha + (i - centro);
+                int colunaTab = origemColuna + (j - centro);
+
+                // Verifica se está dentro dos limites do tabuleiro
+                if (linhaTab >= 0 && linhaTab < TAMANHO_TABULEIRO &&
+                    colunaTab >= 0 && colunaTab < TAMANHO_TABULEIRO) {
+
+                    // Marca a posição como área de habilidade (sem sobrescrever navio)
+                    if (tabuleiro[linhaTab][colunaTab] == 0)
+                        tabuleiro[linhaTab][colunaTab] = HABILIDADE;
+                }
+            }
+        }
+    }
 }
 
 int main() {
-    // Declaração e inicialização do tabuleiro
+    // Tabuleiro inicializado com água
     int tabuleiro[TAMANHO_TABULEIRO][TAMANHO_TABULEIRO] = {0};
 
-    // === Definindo as posições dos navios ===
-    // Navio 1 - Horizontal (linha 2, coluna 3)
-    int linha_h1 = 2;
-    int coluna_h1 = 3;
+    // ============================
+    // Posicionar 2 navios normais
+    // ============================
+    // Navio horizontal
+    tabuleiro[2][3] = NAVIO;
+    tabuleiro[2][4] = NAVIO;
+    tabuleiro[2][5] = NAVIO;
 
-    // Navio 2 - Vertical (linha 5, coluna 7)
-    int linha_v1 = 5;
-    int coluna_v1 = 7;
+    // Navio vertical
+    tabuleiro[5][7] = NAVIO;
+    tabuleiro[6][7] = NAVIO;
+    tabuleiro[7][7] = NAVIO;
 
-    // Navio 3 - Diagonal principal (linha 0, coluna 0)
-    int linha_d1 = 0;
-    int coluna_d1 = 0;
+    // ============================
+    // Posicionar 2 navios diagonais
+    // ============================
+    // Diagonal principal
+    tabuleiro[0][0] = NAVIO;
+    tabuleiro[1][1] = NAVIO;
+    tabuleiro[2][2] = NAVIO;
 
-    // Navio 4 - Diagonal secundária (linha 0, coluna 9)
-    int linha_d2 = 0;
-    int coluna_d2 = 9;
+    // Diagonal secundária
+    tabuleiro[0][9] = NAVIO;
+    tabuleiro[1][8] = NAVIO;
+    tabuleiro[2][7] = NAVIO;
 
-    // === Validação e posicionamento dos navios ===
+    // ============================
+    // Criar matrizes das habilidades
+    // ============================
+    int cone[TAMANHO_HABILIDADE][TAMANHO_HABILIDADE];
+    int cruz[TAMANHO_HABILIDADE][TAMANHO_HABILIDADE];
+    int octaedro[TAMANHO_HABILIDADE][TAMANHO_HABILIDADE];
 
-    // Navio Horizontal
-    if (coluna_h1 + TAMANHO_NAVIO > TAMANHO_TABULEIRO) {
-        printf("Erro: Navio horizontal fora dos limites!\n");
-        return 1;
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        if (estaOcupado(tabuleiro, linha_h1, coluna_h1 + i)) {
-            printf("Erro: Sobreposição no navio horizontal!\n");
-            return 1;
-        }
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        tabuleiro[linha_h1][coluna_h1 + i] = NAVIO;
-    }
+    criarCone(cone);
+    criarCruz(cruz);
+    criarOctaedro(octaedro);
 
-    // Navio Vertical
-    if (linha_v1 + TAMANHO_NAVIO > TAMANHO_TABULEIRO) {
-        printf("Erro: Navio vertical fora dos limites!\n");
-        return 1;
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        if (estaOcupado(tabuleiro, linha_v1 + i, coluna_v1)) {
-            printf("Erro: Sobreposição no navio vertical!\n");
-            return 1;
-        }
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        tabuleiro[linha_v1 + i][coluna_v1] = NAVIO;
-    }
+    // ============================
+    // Aplicar as habilidades no tabuleiro
+    // ============================
+    aplicarHabilidade(tabuleiro, cone, 5, 2);      // Cone na posição (5,2)
+    aplicarHabilidade(tabuleiro, cruz, 7, 4);      // Cruz na posição (7,4)
+    aplicarHabilidade(tabuleiro, octaedro, 4, 5);  // Octaedro na posição (4,5)
 
-    // Navio Diagonal Principal (\)
-    if (linha_d1 + TAMANHO_NAVIO > TAMANHO_TABULEIRO || coluna_d1 + TAMANHO_NAVIO > TAMANHO_TABULEIRO) {
-        printf("Erro: Navio diagonal principal fora dos limites!\n");
-        return 1;
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        if (estaOcupado(tabuleiro, linha_d1 + i, coluna_d1 + i)) {
-            printf("Erro: Sobreposição no navio diagonal principal!\n");
-            return 1;
-        }
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        tabuleiro[linha_d1 + i][coluna_d1 + i] = NAVIO;
-    }
-
-    // Navio Diagonal Secundária (/)
-    if (linha_d2 + TAMANHO_NAVIO > TAMANHO_TABULEIRO || coluna_d2 - (TAMANHO_NAVIO - 1) < 0) {
-        printf("Erro: Navio diagonal secundaria fora dos limites!\n");
-        return 1;
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        if (estaOcupado(tabuleiro, linha_d2 + i, coluna_d2 - i)) {
-            printf("Erro: Sobreposição no navio diagonal secundaria!\n");
-            return 1;
-        }
-    }
-    for (int i = 0; i < TAMANHO_NAVIO; i++) {
-        tabuleiro[linha_d2 + i][coluna_d2 - i] = NAVIO;
-    }
-
-    // === Exibir o tabuleiro ===
-    printf("\nTabuleiro final com os navios posicionados:\n");
+    // ============================
+    // Exibir o tabuleiro final
+    // ============================
+    printf("\nTabuleiro com navios e áreas de habilidade:\n");
     exibirTabuleiro(tabuleiro);
-
-
+    
     return 0;
 }
